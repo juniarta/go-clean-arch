@@ -3,54 +3,71 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
+	"time"
 
-	httpDeliver "github.com/bxcodec/go-clean-arch/article/delivery/http"
-	articleRepo "github.com/bxcodec/go-clean-arch/article/repository"
-	articleUcase "github.com/bxcodec/go-clean-arch/article/usecase"
-	_authorRepo "github.com/bxcodec/go-clean-arch/author/repository"
-	cfg "github.com/bxcodec/go-clean-arch/config/env"
-	"github.com/bxcodec/go-clean-arch/config/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/echo"
+	"github.com/spf13/viper"
+
+	_articleHttpDeliver "github.com/bxcodec/go-clean-arch/article/delivery/http"
+	_articleRepo "github.com/bxcodec/go-clean-arch/article/repository"
+	_articleUcase "github.com/bxcodec/go-clean-arch/article/usecase"
+	_authorRepo "github.com/bxcodec/go-clean-arch/author/repository"
+	"github.com/bxcodec/go-clean-arch/middleware"
 )
 
-var config cfg.Config
-
 func init() {
-	config = cfg.NewViperConfig()
-
-	if config.GetBool(`debug`) {
-		fmt.Println("Service RUN on DEBUG mode")
+	viper.SetConfigFile(`config.json`)
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
 	}
 
+	if viper.GetBool(`debug`) {
+		fmt.Println("Service RUN on DEBUG mode")
+	}
 }
 
 func main() {
-
-	dbHost := config.GetString(`database.host`)
-	dbPort := config.GetString(`database.port`)
-	dbUser := config.GetString(`database.user`)
-	dbPass := config.GetString(`database.pass`)
-	dbName := config.GetString(`database.name`)
+	dbHost := viper.GetString(`database.host`)
+	dbPort := viper.GetString(`database.port`)
+	dbUser := viper.GetString(`database.user`)
+	dbPass := viper.GetString(`database.pass`)
+	dbName := viper.GetString(`database.name`)
 	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
 	val := url.Values{}
 	val.Add("parseTime", "1")
 	val.Add("loc", "Asia/Jakarta")
 	dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
 	dbConn, err := sql.Open(`mysql`, dsn)
-	if err != nil && config.GetBool("debug") {
+	if err != nil && viper.GetBool("debug") {
 		fmt.Println(err)
 	}
-	defer dbConn.Close()
+	err = dbConn.Ping()
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	defer func() {
+		err := dbConn.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	e := echo.New()
 	middL := middleware.InitMiddleware()
 	e.Use(middL.CORS)
 	authorRepo := _authorRepo.NewMysqlAuthorRepository(dbConn)
-	ar := articleRepo.NewMysqlArticleRepository(dbConn)
-	au := articleUcase.NewArticleUsecase(ar, authorRepo)
+	ar := _articleRepo.NewMysqlArticleRepository(dbConn)
 
-	httpDeliver.NewArticleHttpHandler(e, au)
+	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
+	au := _articleUcase.NewArticleUsecase(ar, authorRepo, timeoutContext)
+	_articleHttpDeliver.NewArticleHandler(e, au)
 
-	e.Start(config.GetString("server.address"))
+	log.Fatal(e.Start(viper.GetString("server.address")))
 }

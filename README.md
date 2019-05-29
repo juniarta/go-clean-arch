@@ -1,5 +1,11 @@
 # go-clean-arch
 
+## Looking for the old code ? 
+If you are looking for the old code, you can checkout to the [v1 branch](https://github.com/bxcodec/go-clean-arch/tree/v1)
+
+_Last Updated: May 12th 2018_
+
+## Description
 This is an example of implementation of Clean Architecture in Go (Golang) projects.
 
 Rule of Clean Architecture by Uncle Bob
@@ -17,9 +23,14 @@ This project has  4 Domain layer :
  * Usecase Layer  
  * Delivery Layer
 
+#### The diagram:
+
+![golang clean architecture](https://github.com/bxcodec/go-clean-arch/raw/master/clean-arch.png)
+
 The explanation about this project's structure  can read from this medium's post : https://medium.com/@imantumorang/golang-clean-archithecture-efd6d7c43047
 
 ### How To Run This Project
+> Make Sure you have run the article.sql in your mysql
 
 ```bash
 #move to directory
@@ -32,17 +43,17 @@ git clone https://github.com/bxcodec/go-clean-arch.git
 cd go-clean-arch
 
 # Install Dependencies
-glide install -v
+dep ensure
 
-# Make File
-make
+# Test the code
+make test
 
 # Run Project
 go run main.go
 
 ```
-
-Or
+Or With `go get`
+> Make Sure you have run the article.sql in your mysql
 
 ```bash
 # GET WITH GO GET
@@ -53,14 +64,51 @@ go get github.com/bxcodec/go-clean-arch
 cd $GOPATH/src/github.com/bxcodec/go-clean-arch
 
 # Install Dependencies
-glide install -v
+dep ensure
 
-# Make File
-make
+# Test the code
+make test
 
 # Run Project
 go run main.go
 ```
 
+Or with `docker-compose`
 
-> Make Sure you have run the article.sql in your mysql
+```bash
+#move to directory
+cd $GOPATH/src/github.com/bxcodec
+
+# Clone into YOUR $GOPATH/src
+git clone https://github.com/bxcodec/go-clean-arch.git
+
+#move to project
+cd go-clean-arch
+
+# Build the docker image first
+make docker
+
+# Run the application
+make run
+
+# check if the containers are running
+docker ps
+
+# Execute the call
+curl localhost:9090/articles
+
+# Stop
+make stop
+```
+
+
+### Tools Used:
+In this project, I use some tools listed below. But you can use any simmilar library that have the same purposes. But, well, different library will have different implementation type. Just be creative and use anything that you really need. 
+
+- All libraries listed in [`Gopkg.toml`](https://github.com/bxcodec/go-clean-arch/blob/master/Gopkg.toml) 
+- ["github.com/vektra/mockery".](https://github.com/vektra/mockery) To Generate Mocks for testing needs.
+
+
+### Change log 
+ - 2018-04-30 : [Move to new projects folder](https://github.com/bxcodec/go-clean-arch/pull/8)
+ - 2018-05-09 : [Add Context](https://github.com/bxcodec/go-clean-arch/pull/9)
